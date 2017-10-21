@@ -1,0 +1,247 @@
+1. Check Java is installed.
+
+amitabh@mpiu:~$ java -version
+java version "1.7.0_75"
+OpenJDK Runtime Environment (IcedTea 2.5.4) (7u75-2.5.4-1~trusty1)
+OpenJDK 64-Bit Server VM (build 24.75-b04, mixed mode)
+
+
+2. Create a Hadoop user for accessing MapReduce and HDFS
+
+$ sudo addgroup hadoop
+$ sudo adduser --ingroup hadoop hduser
+
+
+3. Minimize the above terminal and open a new terminal
+
+>sudo su root
+>cd
+root@mpiu:~$ 
+
+#Giving correctly and securely privileges to hduser
+>sudo gedit /etc/sudoers
+#Now text file opens and put this line===> hduser ALL=(ALL:ALL) ALL in text file below root privileges.
+#save file and close it
+#Now close this terminal and goto previous terminal.
+
+4. Install and configure SSH
+
+#Install ssh server - Hadoop uses SSH to access its node thus for single node cluster we need to configure ssh access to localhost.
+>sudo apt-get install openssh-server
+
+#Now login through hduser
+>sudo su hduser
+>cd
+
+
+#Generate ssh key for hduser account
+>ssh-keygen -t rsa -P "" 
+# ""=empty password for passwordless ssh
+>Enter file .....:Press enter key
+
+#Now add the newly created key to list of authorized keys so that
+Hadoop can use SSH without prompting for a password.
+
+>cat $HOME/.ssh/id_rsa.pub >> $HOME/.ssh/authorised_keys
+
+
+#Now Hadoop doesn't work with IPv6 so disable it.-->update /etc/sysctl.conf
+
+>sudo gedit /etc/sysctl.conf
+
+#text file opens place the below text at end of file-->save&close.
+
+#disable ipv6
+net.ipv6.conf.all.disable_ipv6
+l.disbale_ipv6 = 1
+net.ipv6.default.disable_ipv6 = 1
+net.ipv6.conf.lo.disable_ipv6=1
+
+#Now reboot the machine
+>sudo reboot
+
+
+#After restarting
+
+#Now download tar.gz file from apache for hadoop and extract it on desktop
+#Open a terminal now
+
+>sudo su hduser
+>cd
+>sudo mv '/home/amitabh/Desktop/hadoop-2.8.1.tar.gz' /usr/local/hadoop
+
+#Now assign ownership of above hadoop directory to hduser
+>sudo chown hduser:hadoop -R /usr/local/hadoop
+
+#Now create Hadoop temp directories for Namenode and DataNode
+
+>sudo mkdir -p /usr/local/hadoop_tmp/hdfs/namenode
+>sudo mkdir -p /usr/local/hadoop_tmp/hdfs/datanode
+
+#Again assign ownership of this Hadoop temp folder to Hadoop user
+
+>sudo chown hduser:hadoop -R /usr/local/hadoop_tmp/
+
+
+>sudo gedit .bashrc
+#Now text file opens ; append below text at end of file and save and exit
+
+#----HADOOP ENVIRONMENT VARIABLES START ---#
+export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64/
+export HADOOP_HOME=/usr/local/hadoop
+export PATH=$PATH:$HADOOP_HOME/bin
+export PATH=$PATH:$HADOOP_HOME/sbin
+export HADOOP_MAPRED_HOME=$HADOOP_HOME
+export HADOOP_COMMON_HOME=$HADOOP_HOME
+export HADOOP_HDFS_HOME=$HADOOP_HOME
+export YARN_HOME=$HADOOP_HOME
+export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
+export HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib"
+export PATH=$PATH:/usr/local/hadoop/bin/
+# END #
+
+
+
+
+
+
+#Now we will configure hadoop-environment variables.sh file
+which specifies where log files are stored,max amt of heap used etc.
+
+
+>cd /usr/local/hadoop/etc/hadoop
+>sudo gedit hadoop-env.sh
+
+#now file opens comment JAVA_HOME line and copy below line there
+export JAVA_HOME='/usr/lib/jvm/java-7-openjdk-amd64/'
+#save and close file
+
+
+#Configuration of core-site.xml file contains config properties that overrides default values for core Hadoop properties
+
+>sudo gedit core-site.xml
+#file opens add below lines at end; Namenode runs on port 9000
+
+<configuration>
+<property>
+<name>fs.default.name</name>
+<value>hdfs://localhost:9000</value>
+</property>
+<property>
+<name>hadoop.tmp.dir</name>
+<value>/usr/lib/hadoop/tmp_added</value>
+</property>
+</configuration>
+
+
+
+
+
+>sudo gedit hdfs-site.xml
+#file opens add below lines at end;
+# dfs.replication=default replication factor for each data block
+#dfs.namenode.name.dir=NameNode stores metadata of file system in local file system in specified directory.
+#dfs.datanode.data.dir=DataNode stores actual blocks of file in local file system in specified directory
+
+<configuration>
+<property>
+<name>dfs.replication</name>
+<value>1</value>
+</property>
+<property>
+<name>dfs.namenode.name.dir</name>
+<value>file:/usr/local/hadoop_tmp/hdfs/namenode</value>
+</property>
+<property>
+<name>dfs.datanode.data.dir</name>
+<value>file:/usr/local/hadoop_tmp/hdfs/datanode</value>
+</property>
+</configuration>
+
+
+#yarn-sie.xml
+
+>sudo gedit yarn-site.xml
+
+<configuration>
+<property>
+<name>yarn.nodemanager.aux-services</name>
+<value>mapreduce_shuffle</value>
+</property>
+<property>
+<name>yarn.nodemanager.aux-services.mapreduce.shuffle.class</name>
+<value>org.apache.hadoop.mapred.ShuffleHandler</value>
+</property>
+
+</configuration>
+
+
+>cp /usr/local/hadoop/etc/hadoop/mapred-site.xml.template /usr/local/hadoop/etc/hadoop/mapred-site.xml
+ 
+>sudo gedit mapred-site.xml
+#It contains specs of MapReduce jobs execution
+
+<configuration>
+<property>
+<name>mapreduce.framework.name</name>
+<value>yarn</value>
+</property>
+</configuration>
+
+
+>cd
+>clear
+
+
+
+
+
+
+
+
+
+#Now prepare to start hadoop cluster by formatting the NameNode whcih needs to be done only once
+>cd /usr/local/hadoop/etc/hadoop
+>hdfs namenode -format
+
+
+
+>cd /usr/local/hadoop/etc/hadoop
+>start-dfs.sh   #start hadoop
+>start-yarn.sh  #start MapReduce daemons
+
+/*In place of above 3 commands following can also be used
+source .bashrc
+start-all.sh //for starting and for stopping=stop-all.sh
+*/
+
+
+#To see hadoop started correctly
+>jps  #It will show details of NodeManger,DataNode,NameNode,resourceManager,jps,secondaryNameNode etc
+
+
+
+#Now goto browser to check UI of running services
+url:localhost:8088/cluster
+url:localhost:50070
+
+
+#Stopping yarn and hdfs
+stop-dfs.sh
+stop-yarn.sh
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
