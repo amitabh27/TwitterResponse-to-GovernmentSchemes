@@ -1,0 +1,80 @@
+=========================================================================================================================================
+2.DOWNLOAD Flume from apache website:
+=========================================================================================================================================
+
+1.8.0 bin tar file---->Extract the folder to desktop.
+Open Terminal
+>sudo su hduser
+>sudo mv '/home/amitabh/Desktop/apache-flume-1.8.0-bin' /usr/local
+>cd /usr/local/apache-flume-1.8.0-bin/conf
+
+//Now we are in config folder of flume where we need to create a .conf file for twitter streaming data application
+
+>sudo vi twitter-flume.conf
+//put the below content into file.
+
+---------------------------------------------------------------------------------------------------------
+
+# Naming the components on the current agent. 
+TwitterAgent.sources = Twitter 
+TwitterAgent.channels = MemChannel 
+TwitterAgent.sinks = HDFS
+  
+# Describing/Configuring the source 
+TwitterAgent.sources.Twitter.type = com.cloudera.flume.source.TwitterSource
+TwitterAgent.sources.Twitter.consumerKey = ***********
+TwitterAgent.sources.Twitter.consumerSecret = ***********
+TwitterAgent.sources.Twitter.accessToken = **************
+TwitterAgent.sources.Twitter.accessTokenSecret = **********
+TwitterAgent.sources.Twitter.keywords = bigdata, mapreduce, mahout, hbase, nosql
+  
+# Describing/Configuring the sink 
+
+TwitterAgent.sinks.HDFS.type = hdfs 
+TwitterAgent.sinks.HDFS.hdfs.path = hdfs://localhost:9000/twitter_data/
+TwitterAgent.sinks.HDFS.hdfs.fileType = DataStream 
+TwitterAgent.sinks.HDFS.hdfs.writeFormat = Text 
+TwitterAgent.sinks.HDFS.hdfs.batchSize = 1000
+TwitterAgent.sinks.HDFS.hdfs.rollSize = 0 
+TwitterAgent.sinks.HDFS.hdfs.rollCount = 10000 
+ 
+# Describing/Configuring the channel 
+TwitterAgent.channels.MemChannel.type = memory 
+TwitterAgent.channels.MemChannel.capacity = 10000 
+TwitterAgent.channels.MemChannel.transactionCapacity = 100
+  
+# Binding the source and sink to the channel 
+TwitterAgent.sources.Twitter.channels = MemChannel
+TwitterAgent.sinks.HDFS.channel = MemChannel 
+--------------------------------------------------------------------------------------------------------------
+
+
+3.
+Now goto : https://github.com/cloudera/cdh-twitter-example and copy the Twitter source JAR from the link "here" OR use the one in setup folder - jar file.
+
+Keep this JAR on ur desktop
+>sudo mv '/home/amitabh/Desktop/flume-sources-1.0-SNAPSHOT.jar' /usr/local/apache-flume-1.8.0-bin/
+>sudo mv '/home/amitabh/Desktop/flume-sources-1.0-SNAPSHOT.jar' /usr/local/apache-flume-1.8.0-bin/lib
+
+>cd
+>sudo gedit .bashrc
+//add the lines below to end
+export FLUME_HOME=/usr/local/apache-flume-1.8.0-bin
+export PATH=$PATH:$FLUME_HOME/bin
+
+Now run the below command to start flume for sourcing data into hadoop; first start all the hadoop services(Total 6 - jps)
+
+>cd $FLUME_HOME
+>bin/flume-ng agent -n TwitterAgent --conf ./conf/ -f conf/twitter-flume.conf -Dflume.root.logger=DEBUG,console
+
+*****************
+Sometimes twitter might give authorization access error, bcoz our clock is not in sync with server's---->install ntp
+>sudo apt-get install ntp
+>sudo nano /etc/ntp.conf ---->file opens--->set time zone of ur server ---->in.pool.ntp.org ---->save and exit
+>sudo service ntp restart
+*****************
+
+
+4.
+Checking the contents of HDFS :
+http://localhost:50070/ , then Go to Live nodes option -> Select one of your datanodes from there -> Click on Browse filesystem
