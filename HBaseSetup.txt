@@ -1,0 +1,46 @@
+==========================================================================================================================================
+8. Configuring HBase
+==========================================================================================================================================
+
+get the .tar file from apache.
+
+>sudo mv '/home/amitabh/Desktop/hbase-1.2.6' /usr/local/hbase-1.2.6
+
+#Now assign ownership of above directory to hduser
+>sudo chown hduser:hadoop -R /usr/local/hbase-1.2.6
+
+>cd /usr/local/hbase-1.2.6/conf
+>sudo gedit hbase-site.xml
+
+<property>
+   <name>hbase.cluster.distributed</name>
+   <value>true</value>
+</property>
+<property>
+   <name>hbase.rootdir</name>
+   <value>hdfs://localhost:9000/hbase</value>
+</property>
+<property>
+        <name>hbase.zookeeper.property.dataDir</name>
+        <value>/data/zookeeper</value>
+   </property>
+
+save and exit.
+
+>sudo gedit hbase-env.sh
+export JAVA_HOME=/usr/local/java/jdk1.8.0_152
+
+save and exit.
+
+>cd /usr/local/hbase-1.2.6
+>bin/start-hbase.sh 			//To start HBase,start hadoop,zookeeper first then this command.
+
+Now,to enter into hbase shell
+>cd bin
+>./hbase shell
+hbase>........
+
+>bin/stop-hbase.sh				//To stop.
+
+
+http://localhost:16010 		or 60010 // to access web interface of HBase in browser.
