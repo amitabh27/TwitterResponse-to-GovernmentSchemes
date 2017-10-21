@@ -1,0 +1,169 @@
+========================================================================================================================================
+5. HIVE Setup
+========================================================================================================================================
+
+Download .bin.tar.gz of Hive from Apache mirrors
+Extract it on desktop
+
+>sudo mv '/home/amitabh/Desktop/apache-hive-2.1.1-bin' /usr/local/apache-hive-2.1.1-bin/
+
+Now, update env variables
+
+>cd
+>sudo gedit .bashrc
+//add the lines below to end
+export HIVE_HOME=/usr/local/apache-hive-2.1.1-bin
+export PATH=$PATH:$HIVE_HOME/bin
+
+Now, configure hive with Hadoop
+
+>cd $HIVE_HOME/conf
+>sudo cp hive-env.sh.template hive-env.sh
+>sudo gedit hive-env.sh
+//put the below line
+export HADOOP_HOME=/usr/local/hadoop
+
+========================================================================================================================================
+6. DERBY Server Setup used by Hive
+=========================================================================================================================================
+
+Open a terminal and download the tar file then it shall be copied to hduser's /usr/local
+
+>cd Desktop
+>wget http://archive.apache.org/dist/db/derby/db-derby-10.4.2.0/db-derby-10.4.2.0-bin.tar.gz
+
+
+>sudo mv '/home/amitabh/Desktop/db-derby-10.4.2.0-bin' /usr/local/db-derby-10.4.2.0-bin
+
+Now,set env variables
+
+>cd
+>sudo gedit .bashrc
+//put below lines
+export DERBY_HOME=/usr/local/db-derby-10.4.2.0-bin
+export PATH=$PATH:$DERBY_HOME/bin
+
+==========================================================================================================================================
+7. Configuring Metastore of Hive
+==========================================================================================================================================
+>cd $HIVE_HOME/conf
+>sudo cp hive-default.xml.template hive-site.xml
+
+>sudo gedit hive-site.xml
+Append the following lines between the <configuration> and </configuration> tags:
+
+<property>
+   <name>javax.jdo.option.ConnectionURL</name>
+   <value>jdbc:derby://localhost:1527/metastore_db;create=true </value>
+   <description>JDBC connect string for a JDBC metastore </description>
+</property>
+
+
+//Now create a file jpox.properties and append the lines below.
+>sudo gedit jpox.properties
+
+javax.jdo.PersistenceManagerFactoryClass =
+org.jpox.PersistenceManagerFactoryImpl
+org.jpox.autoCreateSchema = false
+org.jpox.validateTables = false
+org.jpox.validateColumns = false
+org.jpox.validateConstraints = false
+org.jpox.storeManagerType = rdbms
+org.jpox.autoCreateSchema = true
+org.jpox.autoStartMechanismMode = checked
+org.jpox.transactionIsolation = read_committed
+javax.jdo.option.DetachAllOnCommit = true
+javax.jdo.option.NontransactionalRead = true
+javax.jdo.option.ConnectionDriverName = org.apache.derby.jdbc.ClientDriver
+javax.jdo.option.ConnectionURL = jdbc:derby://hadoop1:1527/metastore_db;create = true
+javax.jdo.option.ConnectionUserName = APP
+javax.jdo.option.ConnectionPassword = mine
+
+
+Now, creating a /tmp folder and separate hive folder in HDFS:
+//remember to start first the hadoop then execute the below commands
+
+
+>cd
+>$HADOOP_HOME/bin/hadoop fs -mkdir /tmp
+>$HADOOP_HOME/bin/hadoop fs -mkdir /user
+>$HADOOP_HOME/bin/hadoop fs -mkdir /user/hive
+>$HADOOP_HOME/bin/hadoop fs -mkdir /user/hive/warehouse
+
+//permissions
+>$HADOOP_HOME/bin/hadoop fs -chmod g+w /tmp
+>$HADOOP_HOME/bin/hadoop fs -chmod g+w /user/hive/warehouse
+
+
+The following commands are used to verify Hive installation:
+>cd
+>source ~/.bashrc
+>cd $HIVE_HOME
+>bin/hive                 //to start HIVE shell
+
+*************************************************************************
+Now if u get multiple bindings error:
+>cd /usr/local/apache-hive-2.1.1-bin
+>sudo rm lib/hive-jdbc-2.1.1.jar
+>sudo rm lib/log4j-slf4j-impl-2.4.1.jar
+
+
+If u get error couldn't create directory,try following alternatives:
+1. sudo chown -R hduser:hadoop apache-hive-2.1.0-bin
+
+2.Edit hive-site.xml:
+<property>
+    <name>hive.downloaded.resources.dir</name>
+    <!--
+    <value>${system:java.io.tmpdir}/${hive.session.id}_resources</value>
+    -->
+    <value>/home/hduser/hive/tmp/${hive.session.id}_resources</value>
+    <description>Temporary local directory for added resources in the remote file system.</description>
+  </property>
+
+3.Remove everything from hive-site that was earlier edited and put the line below:
+ <property>
+  <name>javax.jdo.option.ConnectionURL</name>
+  <value>jdbc:mysql://localhost/metastore?createDatabaseIfNotExist=true</value>
+</property>
+
+
+<property>
+  <name>javax.jdo.option.ConnectionDriverName</name>
+  <value>com.mysql.jdbc.Driver</value>
+</property>
+
+<property>
+  <name>javax.jdo.option.ConnectionUserName</name>
+  <value>root</value>
+</property>
+
+<property>
+  <name>javax.jdo.option.ConnectionPassword</name>
+  <value>root</value>
+</property>
+
+<property>
+  <name>datanucleus.autoCreateSchema</name>
+  <value>true</value>
+</property>
+
+<property>
+  <name>datanucleus.fixedDatastore</name>
+  <value>true</value>
+</property>
+
+<property>
+ <name>datanucleus.autoCreateTables</name>
+ <value>True</value>
+ </property>
+
+Now,also put a jar sql-connector in lib of hive
+>sudo mv '/home/amitabh/Desktop/mysql-connector-java-5.1.28.jar' /usr/local/apache-hive-2.1.1-bin/lib/
+
+
+
+
+*************************************************************************
+
+hive>show tables;            //to see tables
