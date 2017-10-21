@@ -1,0 +1,12 @@
+========================================================================================================================================
+1. TWITTER Streaming API setup
+========================================================================================================================================
+goto https://apps.twitter.com
+Create your app with any random placeholder and  callbackURL.
+
+Now,
+Goto Keys and Access tokens---->Generate Token :
+Consumer Key (API Key)	******
+Consumer Secret (API Secret)	**********
+Access Token	***************
+Access Token Secret	***********************
